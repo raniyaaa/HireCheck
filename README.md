@@ -1,11 +1,11 @@
-# 🔍 HireCheck — AI-Powered Resume Screening ATS
+#  HireCheck — AI-Powered Resume Screening ATS
 
 HireCheck is a multi-agent AI system that automatically screens resumes,
 scores candidates and generates recruiter-ready insights.
 
 ---
 
-## ✨ Features
+##  Features
 
 - **Batch Resume Upload** — Upload multiple PDFs or images at once
 - **4 AI Agents** — Parser, JD Matcher, Reference Matcher, Summarizer, Comms Agent
@@ -81,7 +81,7 @@ Open your browser at: **http://localhost:8501**
 
 ---
 
-## 🧠 How It Works
+##  How It Works
 
 ```
 Recruiter uploads resumes + pastes JD + pastes Ideal Profile
@@ -107,7 +107,7 @@ Recruiter uploads resumes + pastes JD + pastes Ideal Profile
 
 ---
 
-## 🎛️ Configuration
+##  Configuration
 
 Edit `.env` to change:
 ```
@@ -120,7 +120,7 @@ You can also adjust thresholds live using the sliders in the sidebar.
 
 ---
 
-## 📧 Mock Emails
+##  Mock Emails
 
 All emails are saved as `.txt` files in `mock_emails/`.
 Each file is named: `CandidateName_Decision_Timestamp.txt`
@@ -130,7 +130,7 @@ Python's `smtplib` with your Gmail credentials.
 
 ---
 
-## 📦 Tech Stack
+##  Tech Stack
 
 | Layer       | Technology                        |
 |-------------|-----------------------------------|
