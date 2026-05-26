@@ -1,6 +1,5 @@
-# ============================================================
 # agents/jd_matcher.py
-# ============================================================
+
 # LangGraph NODE 2 — JD Matcher Agent
 #
 # Reads from state : resume_text, job_description
@@ -9,7 +8,6 @@
 #
 # Asks AI to compare resume vs job description and return
 # a structured JSON score with full reasoning.
-# ============================================================
 
 import json
 import re

@@ -1,6 +1,5 @@
-# ============================================================
 # app/state.py
-# ============================================================
+
 # PURPOSE:
 #   LangGraph State definition.
 #   This TypedDict is the shared data container that flows
@@ -8,7 +7,6 @@
 #
 #   'total=False' means every field is optional — nodes only
 #   need to return the keys they actually updated.
-# ============================================================
 
 from typing import TypedDict, List, Optional
 

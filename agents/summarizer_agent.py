@@ -1,6 +1,5 @@
-# ============================================================
 # agents/summarizer.py
-# ============================================================
+
 # LangGraph NODE 4 — Summarizer Agent
 #
 # Reads from state : resume_text
@@ -12,7 +11,7 @@
 # Example output:
 # "Candidate demonstrates strong Python and ML skills with
 #  solid project experience. Lacks cloud deployment exposure."
-# ============================================================
+
 
 from app.state import CandidateState
 from llm.groq_client import get_groq_response

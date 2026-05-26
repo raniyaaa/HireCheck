@@ -1,6 +1,5 @@
-# ============================================================
 # agents/reference_matcher.py
-# ============================================================
+
 # LangGraph NODE 3 — Reference Matcher Agent
 #
 # Reads from state : resume_text, ideal_candidate_reference
@@ -10,7 +9,7 @@
 #
 # Focuses on soft skills, leadership, teamwork, projects —
 # things the JD Matcher doesn't cover.
-# ============================================================
+
 
 import json
 import re

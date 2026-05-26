@@ -1,11 +1,10 @@
-# ============================================================
 # database/db.py
-# ============================================================
+
 # PURPOSE:
 #   All SQLite database operations for HireCheck.
 #   The file 'hirecheck.db' is created automatically in your
 #   HireCheck/ root folder when the app first starts.
-# ============================================================
+
 
 import os
 import json

@@ -1,11 +1,10 @@
-# ============================================================
 # agents/parser_agent.py
-# ============================================================
+
 # LangGraph NODE 1 — Parser
 #
 # Reads from state : resume_path
 # Writes to state  : candidate_name, resume_text
-# ============================================================
+
 
 import os
 import re

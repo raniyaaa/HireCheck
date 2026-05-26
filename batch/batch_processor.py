@@ -1,6 +1,5 @@
-# ============================================================
 # batch/batch_processor.py
-# ============================================================
+
 # PURPOSE:
 #   Processes multiple resumes by running each one through
 #   the LangGraph pipeline via graph.invoke().
@@ -14,7 +13,7 @@
 #
 #   The progress_callback parameter lets FastAPI (and Streamlit)
 #   know which resume is being processed right now.
-# ============================================================
+
 
 import os
 from typing import List, Callable, Optional

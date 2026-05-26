@@ -1,6 +1,5 @@
-# ============================================================
 # decision/decision.py
-# ============================================================
+
 # LangGraph NODE 5 — Decision Engine
 #
 # Reads from state : jd_score, reference_score, candidate_name,
@@ -16,7 +15,7 @@
 #   final_score > 18   → Accept
 #   final_score 15-18  → Human Review
 #   final_score < 15   → Reject
-# ============================================================
+
 
 import os
 from dotenv import load_dotenv

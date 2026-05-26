@@ -1,6 +1,5 @@
-# ============================================================
 # agents/comms_agent.py
-# ============================================================
+
 # LangGraph NODE 6 — Communication Agent
 #
 # Reads from state : decision, candidate_name, final_score,
@@ -9,7 +8,7 @@
 #
 # Generates a professional email and saves it as a .txt file
 # in mock_emails/ folder. Nothing is actually sent.
-# ============================================================
+
 
 import os
 from datetime import datetime

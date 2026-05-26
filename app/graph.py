@@ -1,6 +1,5 @@
-# ============================================================
 # app/graph.py
-# ============================================================
+
 # THE LANGGRAPH PIPELINE — Heart of HireCheck
 #
 # This file builds the full evaluation pipeline using LangGraph.
@@ -8,10 +7,6 @@
 # LangGraph concepts used here:
 #
 #   StateGraph     → creates a graph that uses CandidateState
-#   add_node()     → registers a node (name + function)
-#   add_edge()     → unconditional arrow from node A to node B
-#   add_conditional_edges() → arrow that goes to different nodes
-#                             depending on a routing function
 #   set_entry_point() → which node runs first
 #   compile()      → validates and prepares the graph to run
 #   graph.invoke() → runs the full pipeline with an input state
@@ -32,7 +27,7 @@
 #   comms_node           ← generates email
 #     ↓
 #   END
-# ============================================================
+
 
 from langgraph.graph import StateGraph, END
 

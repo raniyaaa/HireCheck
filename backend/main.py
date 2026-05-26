@@ -1,6 +1,5 @@
-# ============================================================
 # backend/main.py
-# ============================================================
+
 # FastAPI Backend Server for HireCheck ATS
 #
 # This server sits between the Streamlit UI and the LangGraph
@@ -18,7 +17,7 @@
 #
 # HOW TO RUN (in a separate terminal):
 #   uvicorn backend.main:app --reload --port 8000
-# ============================================================
+
 
 import os
 import uuid
