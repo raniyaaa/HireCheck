@@ -31,8 +31,8 @@ PyMuPDF==1.24.5
 
 # OCR for image resumes
 pytesseract==0.3.10
-Pillow==11.2.1
-
+# Pillow==11.2.1
+Pillow==10.4.0
 # Database
 sqlalchemy==2.0.30
 
