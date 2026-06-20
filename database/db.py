@@ -8,40 +8,60 @@
 
 import os
 import json
-import sqlite3
+import pymysql
+import pymysql.cursors
 from datetime import datetime
 from dotenv import load_dotenv
 
 load_dotenv()
+DB_HOST     = os.getenv("DB_HOST")
+DB_PORT     = int(os.getenv("DB_PORT", 3306))
+DB_USER     = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME     = os.getenv("DB_NAME")
 
-DB_PATH = os.getenv("DATABASE_URL", "hirecheck.db")
+# DB_PATH = os.getenv("DATABASE_URL", "hirecheck.db")
 
 
 def get_connection():
-    """Opens a connection to the SQLite database."""
-    conn = sqlite3.connect(DB_PATH)
-    conn.row_factory = sqlite3.Row  # Lets us access columns by name
-    return conn
+    """
+    Opens a connection to the MySQL database (hosted on Aiven).
+
+    ssl={'ssl': {}} forces an SSL connection, which Aiven requires
+    for security — connecting without SSL will be rejected.
+
+    cursorclass=DictCursor makes rows behave like dictionaries
+    (so row['username'] works, just like sqlite3.Row did).
+    """
+    return pymysql.connect(
+        host=DB_HOST,
+        port=DB_PORT,
+        user=DB_USER,
+        password=DB_PASSWORD,
+        database=DB_NAME,
+        cursorclass=pymysql.cursors.DictCursor,
+        ssl={"ssl": {}},
+    )
 
 
 def init_db():
     """
-    Creates the database file and candidates table if they
-    don't already exist. Called once when the app starts.
+    Creates the database tables if they don't exist.
+    Same 2 tables as before: candidates and users.
     """
     conn   = get_connection()
     cursor = conn.cursor()
-    #this table stores info about candidates whose resumes were analyzed
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS candidates (
-            id                          INTEGER PRIMARY KEY AUTOINCREMENT,
-            session_id                  TEXT,
-            candidate_name              TEXT,
+            id                          INT AUTO_INCREMENT PRIMARY KEY,
+            session_id                  VARCHAR(64),
+            candidate_name              VARCHAR(255),
             resume_path                 TEXT,
-            jd_score                    REAL,
-            reference_score             REAL,
-            final_score                 REAL,
-            decision                    TEXT,
+            jd_score                    FLOAT,
+            reference_score             FLOAT,
+            final_score                 FLOAT,
+            decision                    VARCHAR(50),
             jd_reasons                  TEXT,
             jd_missing_skills           TEXT,
             jd_strengths                TEXT,
@@ -58,18 +78,18 @@ def init_db():
             email_status                TEXT,
             email_content               TEXT,
             error                       TEXT,
-            created_at                  TEXT
+            created_at                  VARCHAR(64)
         )
     """)
-    #this table stores the login information
+
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS users (
-            id          INTEGER PRIMARY KEY AUTOINCREMENT,
-            username    TEXT UNIQUE NOT NULL,
-            password    TEXT NOT NULL,
-            role        TEXT NOT NULL DEFAULT 'recruiter',
-            is_active   INTEGER NOT NULL DEFAULT 1,
-            created_at  TEXT
+            id          INT AUTO_INCREMENT PRIMARY KEY,
+            username    VARCHAR(100) UNIQUE NOT NULL,
+            password    VARCHAR(255) NOT NULL,
+            role        VARCHAR(20) NOT NULL DEFAULT 'recruiter',
+            is_active   TINYINT NOT NULL DEFAULT 1,
+            created_at  VARCHAR(64)
         )
     """)
 
@@ -78,10 +98,7 @@ def init_db():
 
 
 def save_candidate(candidate_dict: dict, session_id: str = "default"):
-    """
-    Saves one candidate's result to the database.
-    Lists are converted to JSON strings for storage.
-    """
+    """Saves one candidate's result to MySQL. Lists → JSON strings."""
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -95,7 +112,7 @@ def save_candidate(candidate_dict: dict, session_id: str = "default"):
             missing_skills, strengths, summary,
             final_recommendation_reason, email_status, email_content,
             error, created_at
-        ) VALUES (?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?,?)
+        ) VALUES (%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s,%s)
     """, (
         session_id,
         candidate_dict.get("candidate_name", "Unknown"),
@@ -128,16 +145,13 @@ def save_candidate(candidate_dict: dict, session_id: str = "default"):
 
 
 def load_all_candidates(session_id: str = None) -> list:
-    """
-    Loads candidates from the database.
-    If session_id is given, only loads that batch.
-    """
+    """Loads candidates from MySQL. Converts JSON strings back to lists."""
     conn   = get_connection()
     cursor = conn.cursor()
 
     if session_id:
         cursor.execute(
-            "SELECT * FROM candidates WHERE session_id=? ORDER BY final_score DESC",
+            "SELECT * FROM candidates WHERE session_id=%s ORDER BY final_score DESC",
             (session_id,)
         )
     else:
@@ -149,7 +163,6 @@ def load_all_candidates(session_id: str = None) -> list:
     results = []
     for row in rows:
         d = dict(row)
-        # Convert JSON strings back to Python lists
         for field in ["jd_reasons","jd_missing_skills","jd_strengths","jd_weaknesses",
                       "reference_reasons","reference_strengths","reference_weaknesses",
                       "missing_skills","strengths"]:
@@ -166,39 +179,36 @@ def clear_session(session_id: str):
     """Deletes all candidates belonging to a specific session."""
     conn   = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM candidates WHERE session_id=?", (session_id,))
+    cursor.execute("DELETE FROM candidates WHERE session_id=%s", (session_id,))
     conn.commit()
     conn.close()
 
+# ──────────────────────────────────────────────────────────
+# USER FUNCTIONS (for authentication)
+# ──────────────────────────────────────────────────────────
+
 def create_user(username: str, hashed_password: str, role: str = "recruiter"):
-    """
-    Saves a new user to the database.
-    Password must already be hashed before calling this.
-    Returns True if created, False if username already exists.
-    """
+    """Saves a new user. Returns True if created, False if username taken."""
     conn   = get_connection()
     cursor = conn.cursor()
     try:
         cursor.execute("""
             INSERT INTO users (username, password, role, is_active, created_at)
-            VALUES (?, ?, ?, 1, ?)
+            VALUES (%s, %s, %s, 1, %s)
         """, (username, hashed_password, role, datetime.now().isoformat()))
         conn.commit()
         return True
-    except sqlite3.IntegrityError:
-        # UNIQUE constraint failed → username already exists
+    except pymysql.err.IntegrityError:
+        # Duplicate username (UNIQUE constraint violation)
         return False
     finally:
         conn.close()
 
-def get_user(username: str) -> dict | None:
-    """
-    Fetches a user by username.
-    Returns a dict with user data, or None if not found.
-    """
+def get_user(username: str):
+    """Fetches a user by username. Returns dict or None."""
     conn   = get_connection()
     cursor = conn.cursor()
-    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    cursor.execute("SELECT * FROM users WHERE username = %s", (username,))
     row = cursor.fetchone()
     conn.close()
     return dict(row) if row else None
@@ -217,16 +227,16 @@ def delete_user(username: str):
     """Deletes a user by username."""
     conn   = get_connection()
     cursor = conn.cursor()
-    cursor.execute("DELETE FROM users WHERE username = ?", (username,))
+    cursor.execute("DELETE FROM users WHERE username = %s", (username,))
     conn.commit()
     conn.close()
 
+# ──────────────────────────────────────────────────────────
+# ADMIN FUNCTIONS
+# ──────────────────────────────────────────────────────────
+
 def get_all_sessions() -> list:
-    """
-    Returns a summary of every session ever processed —
-    grouped by session_id, showing who ran it, when, and how many candidates.
-    Used by the admin dashboard.
-    """
+    """Returns a summary of every session, grouped by session_id."""
     conn   = get_connection()
     cursor = conn.cursor()
     cursor.execute("""
@@ -247,10 +257,7 @@ def get_all_sessions() -> list:
     return [dict(r) for r in rows]
 
 def get_system_stats() -> dict:
-    """
-    Returns overall system-wide statistics.
-    Used by the admin analytics panel.
-    """
+    """Returns overall system-wide statistics for the admin panel."""
     conn   = get_connection()
     cursor = conn.cursor()
 
@@ -293,7 +300,7 @@ def set_user_active(username: str, is_active: bool):
     conn   = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE users SET is_active = ? WHERE username = ?",
+        "UPDATE users SET is_active = %s WHERE username = %s",
         (1 if is_active else 0, username)
     )
     conn.commit()
@@ -304,7 +311,7 @@ def update_user_role(username: str, new_role: str):
     conn   = get_connection()
     cursor = conn.cursor()
     cursor.execute(
-        "UPDATE users SET role = ? WHERE username = ?",
+        "UPDATE users SET role = %s WHERE username = %s",
         (new_role, username)
     )
     conn.commit()
