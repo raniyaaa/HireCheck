@@ -2,7 +2,10 @@
 # streamlit_app.py
 # ============================================================
 # The HireCheck recruiter UI.
-#
+#   1. User sees login/signup page first
+#   2. On successful login → JWT token stored in session_state
+#   3. All API calls now include: Authorization: Bearer <token>
+#   4. If token expires/invalid → user is logged out automatically
 # Flow:
 #   1. Recruiter fills sidebar (JD + ideal profile + thresholds)
 #   2. Recruiter uploads resumes + clicks Process
@@ -56,7 +59,7 @@ st.markdown("""
 
 .metric-box { background:white; border-radius:10px; padding:16px;
               text-align:center; box-shadow:0 1px 4px rgba(0,0,0,0.1); }
-.metric-num { font-size:32px; font-weight:800; }
+.metric-num { font-size:32px; font-weight:800; color:black; }
 .metric-lbl { font-size:13px; color:#6b7280; margin-top:4px; }
 
 #MainMenu { visibility:hidden; }
@@ -64,9 +67,157 @@ footer    { visibility:hidden; }
 </style>
 """, unsafe_allow_html=True)
 
+# ─────────────────────────────────────────────────────────
+# AUTH HELPER FUNCTIONS
+# ─────────────────────────────────────────────────────────
+
+def auth_headers() -> dict:
+    """
+    Returns the Authorization header using the stored JWT token.
+    Attached to every protected API call.
+    """
+    token = st.session_state.get("token", "")
+    return {"Authorization": f"Bearer {token}"}
+
+def login_request(username: str, password: str) -> dict | None:
+    """Calls /auth/login. Returns response dict or None on failure."""
+    try:
+        r = httpx.post(
+            f"{BACKEND_URL}/auth/login",
+            json={"username": username, "password": password},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return r.json()
+        else:
+            st.session_state["auth_error"] = r.json().get("detail", "Login failed")
+            return None
+    except Exception as e:
+        st.session_state["auth_error"] = f"Connection error: {e}"
+        return None
+
+
+def signup_request(username: str, password: str, role: str) -> dict | None:
+    """Calls /auth/signup. Returns response dict or None on failure."""
+    try:
+        r = httpx.post(
+            f"{BACKEND_URL}/auth/signup",
+            json={"username": username, "password": password, "role": role},
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return r.json()
+        else:
+            st.session_state["auth_error"] = r.json().get("detail", "Signup failed")
+            return None
+    except Exception as e:
+        st.session_state["auth_error"] = f"Connection error: {e}"
+        return None
+
+def is_logged_in() -> bool:
+    """Checks if a token exists in session state."""
+    return bool(st.session_state.get("token"))
+
+def logout():
+    """Clears all auth data from session state."""
+    for key in ["token", "username", "role"]:
+        st.session_state.pop(key, None)
+
+
+def check_backend() -> bool:
+    try:
+        r = httpx.get(f"{BACKEND_URL}/health", timeout=3)
+        return r.status_code == 200
+    except Exception:
+        return False
+    
+# ─────────────────────────────────────────────────────────
+# SESSION STATE DEFAULTS
+# ─────────────────────────────────────────────────────────
+if "session_id" not in st.session_state:
+    st.session_state.session_id = str(uuid.uuid4())[:8]
+if "results"    not in st.session_state:
+    st.session_state.results    = []
+if "processed"  not in st.session_state:
+    st.session_state.processed  = False
+if "auth_error" not in st.session_state:
+    st.session_state.auth_error = ""
+
+# ═══════════════════════════════════════════════════════════
+# LOGIN / SIGNUP PAGE
+# Shown ONLY if user is not logged in.
+# Everything below this block is the actual app (after login).
+# ═══════════════════════════════════════════════════════════
+if not is_logged_in():
+    st.markdown("<br><br>", unsafe_allow_html=True)
+    col1, col2, col3 = st.columns([1, 1.2, 1])
+
+    with col2:
+        st.markdown("## 🔍 HireCheck ATS")
+        st.caption("AI-Powered Resume Screening Platform")
+
+        if not check_backend():
+            st.error("❌ Backend not reachable. Start it with:\n\n`uvicorn backend.main:app --reload --port 8000`")
+            st.stop()
+
+        tab_login, tab_signup = st.tabs(["Login", "Sign Up"])
+
+        # ── LOGIN TAB ──────────────────────────────────────
+        with tab_login:
+            with st.form("login_form"):
+                login_user = st.text_input("Username", key="login_username")
+                login_pass = st.text_input("Password", type="password", key="login_password")
+                submitted  = st.form_submit_button("Log In", use_container_width=True, type="primary")
+
+                if submitted:
+                    if not login_user or not login_pass:
+                        st.warning("Please enter both username and password")
+                    else:
+                        result = login_request(login_user, login_pass)
+                        if result:
+                            st.session_state["token"]    = result["access_token"]
+                            st.session_state["username"] = result["username"]
+                            st.session_state["role"]      = result["role"]
+                            st.success(f"Welcome back, {result['username']}!")
+                            st.rerun()
+
+            if st.session_state.auth_error:
+                st.error(st.session_state.auth_error)
+                st.session_state.auth_error = ""
+
+        # ── SIGNUP TAB ─────────────────────────────────────
+        with tab_signup:
+            with st.form("signup_form"):
+                signup_user = st.text_input("Choose a username", key="signup_username")
+                signup_pass = st.text_input(
+                    "Choose a password", type="password", key="signup_password",
+                    help="Minimum 6 characters",
+                )
+                signup_role = st.selectbox("Account type", ["recruiter", "admin"], key="signup_role")
+                submitted2  = st.form_submit_button("Create Account", use_container_width=True, type="primary")
+
+                if submitted2:
+                    if not signup_user or not signup_pass:
+                        st.warning("Please fill in all fields")
+                    elif len(signup_pass) < 6:
+                        st.warning("Password must be at least 6 characters")
+                    else:
+                        result = signup_request(signup_user, signup_pass, signup_role)
+                        if result:
+                            st.session_state["token"]    = result["access_token"]
+                            st.session_state["username"] = result["username"]
+                            st.session_state["role"]      = result["role"]
+                            st.success(f"Account created! Welcome, {result['username']}!")
+                            st.rerun()
+
+            if st.session_state.auth_error:
+                st.error(st.session_state.auth_error)
+                st.session_state.auth_error = ""
+
+    st.stop()   # 🛑 Stops execution here — nothing below runs until logged in
 
 # ─────────────────────────────────────────────────────────
-# HELPERS
+# HELPERS(only reachable after login)
 # ─────────────────────────────────────────────────────────
 def badge(decision: str) -> str:
     cls = {
@@ -100,25 +251,72 @@ def to_csv(data: list) -> bytes:
     } for c in data]
     return pd.DataFrame(rows).to_csv(index=False).encode("utf-8")
 
+# ─────────────────────────────────────────────────────────
+# ADMIN API HELPERS
+# ─────────────────────────────────────────────────────────
 
-def check_backend() -> bool:
-    """Returns True if FastAPI backend is reachable."""
+def admin_get(endpoint: str) -> dict | None:
+    """Generic GET request to an admin endpoint, with auth header attached."""
     try:
-        r = httpx.get(f"{BACKEND_URL}/health", timeout=3)
+        r = httpx.get(f"{BACKEND_URL}{endpoint}", headers=auth_headers(), timeout=15)
+        if r.status_code == 200:
+            return r.json()
+        elif r.status_code == 403:
+            st.error("🚫 Admin access required")
+            return None
+        else:
+            st.error(f"Error: {r.text}")
+            return None
+    except Exception as e:
+        st.error(f"Connection error: {e}")
+        return None
+
+def admin_toggle_user_active(username: str, activate: bool) -> bool:
+    """Enables/disables a user account."""
+    try:
+        r = httpx.post(
+            f"{BACKEND_URL}/admin/users/{username}/toggle-active",
+            params={"activate": activate},
+            headers=auth_headers(),
+            timeout=10,
+        )
+        if r.status_code == 200:
+            return True
+        else:
+            st.error(r.json().get("detail", "Failed to update user"))
+            return False
+    except Exception as e:
+        st.error(f"Connection error: {e}")
+        return False
+    
+def admin_delete_session_request(session_id: str) -> bool:
+    """Deletes a session as admin."""
+    try:
+        r = httpx.delete(f"{BACKEND_URL}/admin/session/{session_id}", headers=auth_headers(), timeout=10)
         return r.status_code == 200
-    except Exception:
+    except Exception as e:
+        st.error(f"Connection error: {e}")
         return False
 
 
-# ─────────────────────────────────────────────────────────
-# SESSION STATE
-# ─────────────────────────────────────────────────────────
-if "session_id" not in st.session_state:
-    st.session_state.session_id = str(uuid.uuid4())[:8]
-if "results"    not in st.session_state:
-    st.session_state.results    = []
-if "processed"  not in st.session_state:
-    st.session_state.processed  = False
+# def check_backend() -> bool:
+#     """Returns True if FastAPI backend is reachable."""
+#     try:
+#         r = httpx.get(f"{BACKEND_URL}/health", timeout=3)
+#         return r.status_code == 200
+#     except Exception:
+#         return False
+
+
+# # ─────────────────────────────────────────────────────────
+# # SESSION STATE
+# # ─────────────────────────────────────────────────────────
+# if "session_id" not in st.session_state:
+#     st.session_state.session_id = str(uuid.uuid4())[:8]
+# if "results"    not in st.session_state:
+#     st.session_state.results    = []
+# if "processed"  not in st.session_state:
+#     st.session_state.processed  = False
 
 
 # ─────────────────────────────────────────────────────────
@@ -126,33 +324,29 @@ if "processed"  not in st.session_state:
 # ─────────────────────────────────────────────────────────
 with st.sidebar:
     st.markdown("## 🔍 HireCheck ATS")
-    st.caption("AI-Powered Resume Screening")
 
-    # Backend status indicator
+    # ── User info + logout ──────────────────────────────
+    st.success(f"👤 **{st.session_state.username}** ({st.session_state.role})")
+    if st.button(" Logout ", use_container_width=True):
+        logout()
+        st.rerun()
+
+    st.divider()
+
     if check_backend():
         st.success("✅ Backend connected")
     else:
-        st.error("❌ Backend offline — run: uvicorn backend.main:app --reload --port 8000")
+        st.error("❌ Backend offline")
 
     st.divider()
 
-    st.subheader(" Job Description")
-    jd_input = st.text_area(
-        "Paste the full Job Description",
-        height=180,
-        placeholder="e.g. We are looking for a Python developer with 3+ years experience in FastAPI, PostgreSQL, and Docker...",
-        key="jd",
-    )
+    st.subheader("📋 Job Description")
+    jd_input = st.text_area("Paste the full Job Description", height=180, key="jd")
 
     st.divider()
 
-    st.subheader(" Ideal Candidate Profile")
-    ref_input = st.text_area(
-        "Describe your ideal candidate",
-        height=150,
-        placeholder="e.g. Strong problem-solver, experience leading teams, portfolio of shipped products...",
-        key="ref",
-    )
+    st.subheader("🎯 Ideal Candidate Profile")
+    ref_input = st.text_area("Describe your ideal candidate", height=150, key="ref")
 
     st.divider()
 
@@ -230,7 +424,7 @@ if process_btn and uploaded:
     progress = st.progress(0)
     status   = st.empty()
 
-    status.info("📤 Sending resumes to backend...")
+    status.info(" Sending resumes to backend...")
     progress.progress(10)
 
     try:
@@ -250,12 +444,13 @@ if process_btn and uploaded:
         progress.progress(30)
         status.info(" LangGraph Pipeline running — AI agents evaluating resumes...")
 
-        # Send to FastAPI
+
         response = httpx.post(
             f"{BACKEND_URL}/process",
             files=files_payload,
             data=data_payload,
-            timeout=300,  # 5 min timeout for large batches
+            headers=auth_headers(),
+            timeout=300,
         )
 
         progress.progress(90)
@@ -272,11 +467,15 @@ if process_btn and uploaded:
             status.success(f" Done! {n} resume(s) processed.")
             if skipped:
                 st.warning(f"⚠️ Skipped (unsupported format): {', '.join(skipped)}")
+        elif response.status_code == 401:
+            status.error("🔒 Session expired. Please log in again.")
+            logout()
+            st.rerun()
         else:
             status.error(f"❌ Backend error: {response.text}")
 
     except httpx.TimeoutException:
-        status.error("❌ Request timed out. Try fewer resumes or check backend.")
+        status.error(" Request timed out. Try fewer resumes or check backend.")
     except Exception as e:
         status.error(f"❌ Error: {e}")
 
@@ -322,7 +521,7 @@ if st.session_state.processed and st.session_state.results:
     st.subheader("📊 Candidate Results")
     fc1, fc2 = st.columns([2, 1])
     with fc1:
-        search = st.text_input("🔎 Search by name", placeholder="Type to search...")
+        search = st.text_input(" Search by name", placeholder="Type to search...")
     with fc2:
         filt = st.selectbox("Filter by Decision", ["All","Accept","Human Review","Reject"])
 
@@ -369,17 +568,17 @@ if st.session_state.processed and st.session_state.results:
         # ── Expandable detail panel ───────────────────────
         with st.expander(f"🔍 Full Analysis — {name}"):
             t1, t2, t3, t4 = st.tabs(
-                ["📋 Overview", "🤖 JD Analysis", "🎯 Profile Analysis", "📧 Email"]
+                ["📋 Overview", " JD Analysis", " Profile Analysis", "📧 Email"]
             )
 
             # TAB 1 — Overview
             with t1:
                 oc1, oc2 = st.columns(2)
                 with oc1:
-                    st.markdown("**📝 AI Summary**")
+                    st.markdown("**AI Summary**")
                     st.info(c.get("summary","No summary available."))
 
-                    st.markdown("**✅ Key Strengths**")
+                    st.markdown("**Key Strengths**")
                     for s in c.get("strengths",[])[:5]:
                         st.markdown(f"✅ {s}")
                     if not c.get("strengths"):
@@ -391,7 +590,7 @@ if st.session_state.processed and st.session_state.results:
                     st.metric("Profile Match", f"{ref_s}/10")
                     st.metric("Final Score",   f"{final_s}/20")
 
-                    st.markdown("**❌ Missing Skills**")
+                    st.markdown("**Missing Skills**")
                     for m in c.get("missing_skills",[])[:5]:
                         st.markdown(f"❌ {m}")
                     if not c.get("missing_skills"):
@@ -462,7 +661,7 @@ if st.session_state.processed and st.session_state.results:
 
     # ── Export ────────────────────────────────────────────
     st.divider()
-    st.subheader("📥 Export")
+    st.subheader(" Export")
     ec1, ec2 = st.columns(2)
     with ec1:
         st.download_button(
@@ -474,6 +673,135 @@ if st.session_state.processed and st.session_state.results:
         )
     with ec2:
         st.caption(f"Exporting {len(filtered)} candidate(s) with full analysis")
+# ═══════════════════════════════════════════════════════════
+# ADMIN PANEL — only visible to admin role
+# ═══════════════════════════════════════════════════════════
+if st.session_state.role == "admin":
+    st.divider()
+    st.header(" Admin Panel")
+
+    admin_tab1, admin_tab2, admin_tab3 = st.tabs(
+        ["📊 System Overview", " All Sessions", "👥 Manage Users"]
+    )
+
+    # ── TAB 1: SYSTEM OVERVIEW ────────────────────────────
+    with admin_tab1:
+        stats = admin_get("/admin/stats")
+
+        if stats:
+            s1, s2, s3, s4 = st.columns(4)
+            with s1:
+                st.markdown(f'<div class="metric-box"><div class="metric-num">{stats["total_candidates"]}</div><div class="metric-lbl"> Total Candidates</div></div>', unsafe_allow_html=True)
+            with s2:
+                st.markdown(f'<div class="metric-box"><div class="metric-num">{stats["total_sessions"]}</div><div class="metric-lbl"> Total Sessions</div></div>', unsafe_allow_html=True)
+            with s3:
+                st.markdown(f'<div class="metric-box"><div class="metric-num">{stats["total_users"]}</div><div class="metric-lbl"> Total Users</div></div>', unsafe_allow_html=True)
+            with s4:
+                st.markdown(f'<div class="metric-box"><div class="metric-num">{stats["avg_final_score"]}</div><div class="metric-lbl"> Avg Final Score</div></div>', unsafe_allow_html=True)
+
+            st.write("")
+            st.subheader("Decision Breakdown (All Time)")
+
+            breakdown = stats.get("decision_breakdown", {})
+            if breakdown:
+                bc1, bc2, bc3 = st.columns(3)
+                with bc1:
+                    st.metric("✅ Accept", breakdown.get("Accept", 0))
+                with bc2:
+                    st.metric("🔍 Human Review", breakdown.get("Human Review", 0))
+                with bc3:
+                    st.metric("❌ Reject", breakdown.get("Reject", 0))
+            else:
+                st.caption("No candidates processed yet.")
+
+            st.write("")
+            st.caption(f"👤 Active users: {stats['active_users']} / {stats['total_users']}")
+
+    # ── TAB 2: ALL SESSIONS ────────────────────────────────
+    with admin_tab2:
+        st.caption("View and manage every resume-screening session across all recruiters.")
+
+        sessions_data = admin_get("/admin/sessions")
+
+        if sessions_data and sessions_data.get("sessions"):
+            sessions = sessions_data["sessions"]
+
+            sh1, sh2, sh3, sh4, sh5, sh6 = st.columns([2, 1, 1, 1, 1, 1.5])
+            sh1.markdown("**Session ID**")
+            sh2.markdown("**Candidates**")
+            sh3.markdown("**Accept**")
+            sh4.markdown("**Review**")
+            sh5.markdown("**Reject**")
+            sh6.markdown("**Action**")
+            st.markdown("---")
+
+            for sess in sessions:
+                sc1, sc2, sc3, sc4, sc5, sc6 = st.columns([2, 1, 1, 1, 1, 1.5])
+                sc1.markdown(f"`{sess['session_id']}`")
+                sc2.markdown(str(sess["candidate_count"]))
+                sc3.markdown(f"🟢 {sess['accepted']}")
+                sc4.markdown(f"🟡 {sess['review']}")
+                sc5.markdown(f"🔴 {sess['rejected']}")
+
+                if sc6.button("🗑️ Delete", key=f"del_{sess['session_id']}"):
+                    if admin_delete_session_request(sess["session_id"]):
+                        st.success(f"Deleted session {sess['session_id']}")
+                        st.rerun()
+
+                st.caption(f"Started: {sess['started_at']}  |  Last updated: {sess['last_updated']}")
+                st.markdown("---")
+        else:
+            st.info("No sessions found yet.")
+
+    # ── TAB 3: MANAGE USERS ────────────────────────────────
+    with admin_tab3:
+        st.caption("View all registered users. Enable/disable accounts as needed.")
+
+        users_data = admin_get("/admin/users")
+
+        if users_data and users_data.get("users"):
+            users = users_data["users"]
+
+            uh1, uh2, uh3, uh4, uh5 = st.columns([2, 1.5, 1, 1.5, 1.5])
+            uh1.markdown("**Username**")
+            uh2.markdown("**Role**")
+            uh3.markdown("**Status**")
+            uh4.markdown("**Joined**")
+            uh5.markdown("**Action**")
+            st.markdown("---")
+
+            for u in users:
+                uc1, uc2, uc3, uc4, uc5 = st.columns([2, 1.5, 1, 1.5, 1.5])
+
+                is_self = u["username"] == st.session_state.username
+
+                uc1.markdown(f"**{u['username']}**" + (" *(you)*" if is_self else ""))
+                uc2.markdown("🛠️ Admin" if u["role"] == "admin" else "👤 Recruiter")
+
+                if u["is_active"]:
+                    uc3.markdown("🟢 Active")
+                else:
+                    uc3.markdown("🔴 Disabled")
+
+                uc4.caption(u["created_at"][:10])  # just the date part
+
+                if is_self:
+                    uc5.caption("—")
+                else:
+                    if u["is_active"]:
+                        if uc5.button("🚫 Disable", key=f"disable_{u['username']}"):
+                            if admin_toggle_user_active(u["username"], activate=False):
+                                st.success(f"Disabled {u['username']}")
+                                st.rerun()
+                    else:
+                        if uc5.button("✅ Enable", key=f"enable_{u['username']}"):
+                            if admin_toggle_user_active(u["username"], activate=True):
+                                st.success(f"Enabled {u['username']}")
+                                st.rerun()
+
+                st.markdown("---")
+        else:
+            st.info("No users found.")
 
 elif not st.session_state.processed:
     st.markdown("""
@@ -486,3 +814,4 @@ elif not st.session_state.processed:
         <p style='font-size:16px'>4. Click <b>▶ Process Resumes</b></p>
     </div>
     """, unsafe_allow_html=True)
+

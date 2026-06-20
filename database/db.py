@@ -31,7 +31,7 @@ def init_db():
     """
     conn   = get_connection()
     cursor = conn.cursor()
-
+    #this table stores info about candidates whose resumes were analyzed
     cursor.execute("""
         CREATE TABLE IF NOT EXISTS candidates (
             id                          INTEGER PRIMARY KEY AUTOINCREMENT,
@@ -59,6 +59,17 @@ def init_db():
             email_content               TEXT,
             error                       TEXT,
             created_at                  TEXT
+        )
+    """)
+    #this table stores the login information
+    cursor.execute("""
+        CREATE TABLE IF NOT EXISTS users (
+            id          INTEGER PRIMARY KEY AUTOINCREMENT,
+            username    TEXT UNIQUE NOT NULL,
+            password    TEXT NOT NULL,
+            role        TEXT NOT NULL DEFAULT 'recruiter',
+            is_active   INTEGER NOT NULL DEFAULT 1,
+            created_at  TEXT
         )
     """)
 
@@ -156,5 +167,145 @@ def clear_session(session_id: str):
     conn   = get_connection()
     cursor = conn.cursor()
     cursor.execute("DELETE FROM candidates WHERE session_id=?", (session_id,))
+    conn.commit()
+    conn.close()
+
+def create_user(username: str, hashed_password: str, role: str = "recruiter"):
+    """
+    Saves a new user to the database.
+    Password must already be hashed before calling this.
+    Returns True if created, False if username already exists.
+    """
+    conn   = get_connection()
+    cursor = conn.cursor()
+    try:
+        cursor.execute("""
+            INSERT INTO users (username, password, role, is_active, created_at)
+            VALUES (?, ?, ?, 1, ?)
+        """, (username, hashed_password, role, datetime.now().isoformat()))
+        conn.commit()
+        return True
+    except sqlite3.IntegrityError:
+        # UNIQUE constraint failed → username already exists
+        return False
+    finally:
+        conn.close()
+
+def get_user(username: str) -> dict | None:
+    """
+    Fetches a user by username.
+    Returns a dict with user data, or None if not found.
+    """
+    conn   = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT * FROM users WHERE username = ?", (username,))
+    row = cursor.fetchone()
+    conn.close()
+    return dict(row) if row else None
+
+
+def get_all_users() -> list:
+    """Returns all users (for admin panel)."""
+    conn   = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("SELECT id, username, role, is_active, created_at FROM users")
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def delete_user(username: str):
+    """Deletes a user by username."""
+    conn   = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("DELETE FROM users WHERE username = ?", (username,))
+    conn.commit()
+    conn.close()
+
+def get_all_sessions() -> list:
+    """
+    Returns a summary of every session ever processed —
+    grouped by session_id, showing who ran it, when, and how many candidates.
+    Used by the admin dashboard.
+    """
+    conn   = get_connection()
+    cursor = conn.cursor()
+    cursor.execute("""
+        SELECT
+            session_id,
+            COUNT(*) as candidate_count,
+            SUM(CASE WHEN decision = 'Accept' THEN 1 ELSE 0 END) as accepted,
+            SUM(CASE WHEN decision = 'Human Review' THEN 1 ELSE 0 END) as review,
+            SUM(CASE WHEN decision = 'Reject' THEN 1 ELSE 0 END) as rejected,
+            MIN(created_at) as started_at,
+            MAX(created_at) as last_updated
+        FROM candidates
+        GROUP BY session_id
+        ORDER BY started_at DESC
+    """)
+    rows = cursor.fetchall()
+    conn.close()
+    return [dict(r) for r in rows]
+
+def get_system_stats() -> dict:
+    """
+    Returns overall system-wide statistics.
+    Used by the admin analytics panel.
+    """
+    conn   = get_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("SELECT COUNT(*) as total FROM candidates")
+    total_candidates = cursor.fetchone()["total"]
+
+    cursor.execute("SELECT COUNT(DISTINCT session_id) as total FROM candidates")
+    total_sessions = cursor.fetchone()["total"]
+
+    cursor.execute("SELECT COUNT(*) as total FROM users")
+    total_users = cursor.fetchone()["total"]
+
+    cursor.execute("SELECT COUNT(*) as total FROM users WHERE is_active = 1")
+    active_users = cursor.fetchone()["total"]
+
+    cursor.execute("""
+        SELECT decision, COUNT(*) as count
+        FROM candidates
+        GROUP BY decision
+    """)
+    decision_breakdown = {row["decision"]: row["count"] for row in cursor.fetchall()}
+
+    cursor.execute("SELECT AVG(final_score) as avg_score FROM candidates WHERE final_score > 0")
+    avg_row   = cursor.fetchone()
+    avg_score = round(avg_row["avg_score"], 2) if avg_row["avg_score"] else 0
+
+    conn.close()
+
+    return {
+        "total_candidates":    total_candidates,
+        "total_sessions":      total_sessions,
+        "total_users":         total_users,
+        "active_users":        active_users,
+        "decision_breakdown":  decision_breakdown,
+        "avg_final_score":     avg_score,
+    }
+
+def set_user_active(username: str, is_active: bool):
+    """Enables or disables a user account."""
+    conn   = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET is_active = ? WHERE username = ?",
+        (1 if is_active else 0, username)
+    )
+    conn.commit()
+    conn.close()
+
+def update_user_role(username: str, new_role: str):
+    """Changes a user's role (recruiter <-> admin)."""
+    conn   = get_connection()
+    cursor = conn.cursor()
+    cursor.execute(
+        "UPDATE users SET role = ? WHERE username = ?",
+        (new_role, username)
+    )
     conn.commit()
     conn.close()
