@@ -30,6 +30,7 @@ from dotenv import load_dotenv
 load_dotenv()
 
 BACKEND_URL = os.getenv("BACKEND_URL", "http://localhost:8000")
+st.write("BACKEND_URL =", BACKEND_URL)
 
 # ─────────────────────────────────────────────────────────
 # PAGE CONFIG
