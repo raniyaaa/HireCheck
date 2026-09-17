@@ -72,12 +72,7 @@ GROQ_API_KEY=gsk_your_actual_key_here
 ```
 Get your free key from: https://console.groq.com
 
-### Step 5 — Run the App
-```bash
-python run.py
-```
-
-Open your browser at: **http://localhost:8501**
+Open your browser at: **https://hirecheckfrontend.onrender.com**
 
 ---
 
