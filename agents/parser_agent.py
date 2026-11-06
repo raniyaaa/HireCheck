@@ -15,14 +15,30 @@ from PIL import Image
 from app.state import CandidateState
 
 # ── Tesseract setup ───────────────────────────────────────
+# try:
+#     import pytesseract
+#     if sys.platform == "win32":
+#         pytesseract.pytesseract.tesseract_cmd = (
+#             r"C:\Program Files\Tesseract-OCR\tesseract.exe\tesseract.exe"
+#         )
+#     OCR_AVAILABLE = True
+# except ImportError:
+#     OCR_AVAILABLE = False
+
+# ── Tesseract setup ───────────────────────────────────────
 try:
     import pytesseract
+
     if sys.platform == "win32":
         pytesseract.pytesseract.tesseract_cmd = (
             r"C:\Program Files\Tesseract-OCR\tesseract.exe\tesseract.exe"
         )
+
+    # Check whether the actual Tesseract executable is available
+    pytesseract.get_tesseract_version()
     OCR_AVAILABLE = True
-except ImportError:
+
+except Exception:
     OCR_AVAILABLE = False
 
 

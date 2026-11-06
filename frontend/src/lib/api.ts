@@ -1,10 +1,10 @@
 // Typed client for the HireCheck FastAPI backend (backend/main.py).
 // Every call goes straight from the browser to FastAPI, so long-running
-// requests like /process are never subject to a hosting platform's
-// serverless timeout.
+
 
 export const BACKEND_URL = (
-  process.env.NEXT_PUBLIC_BACKEND_URL || "http://localhost:8000"
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  (process.env.NODE_ENV === "production" ? "/api" : "http://localhost:8000")
 ).replace(/\/+$/, "")
 
 // ── Response shapes ────────────────────────────────────────

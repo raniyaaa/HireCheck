@@ -10,7 +10,6 @@ __pycache__/
 
 # Database
 *.db
-database/cert/
 
 # Uploaded files
 uploads/
