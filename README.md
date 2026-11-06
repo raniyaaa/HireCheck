@@ -137,7 +137,7 @@ Configure the following variables in `.env`:
 ```env
 ACCEPT_THRESHOLD=18
 REVIEW_THRESHOLD=15
-GROQ_MODEL=llama-3.1-8b-instant
+GROQ_MODEL=openai/gpt-oss-20b
 ```
 
 You can also adjust the decision thresholds live using the sliders in the sidebar.
