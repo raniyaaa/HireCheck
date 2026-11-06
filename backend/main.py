@@ -29,6 +29,13 @@ from fastapi.middleware.cors import CORSMiddleware
 from fastapi.security import OAuth2PasswordBearer
 from dotenv import load_dotenv
 
+load_dotenv()
+
+if os.getenv("VERCEL"):
+    os.environ["UPLOAD_FOLDER"] = "/tmp/uploads/resumes"
+    os.environ["MOCK_EMAIL_FOLDER"] = "/tmp/mock_emails"
+    os.environ["EXPORT_FOLDER"] = "/tmp/exports" 
+    
 from database.db import (
     init_db, load_all_candidates, clear_session, create_user, get_user,
     get_all_users, get_all_sessions, get_system_stats, set_user_active,
@@ -41,10 +48,13 @@ from backend.auth import (
 )
 from backend.models import UserSignup, UserLogin, TokenResponse
 
-load_dotenv()
-
 UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads/resumes")
+MOCK_EMAIL_FOLDER = os.getenv("MOCK_EMAIL_FOLDER", "mock_emails")
+EXPORT_FOLDER = os.getenv("EXPORT_FOLDER", "exports")
+
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+os.makedirs(MOCK_EMAIL_FOLDER, exist_ok=True)
+os.makedirs(EXPORT_FOLDER, exist_ok=True)
 
 # ── Create FastAPI app ────────────────────────────────────
 app = FastAPI(
@@ -73,8 +83,8 @@ oauth2_scheme = OAuth2PasswordBearer(tokenUrl="auth/login")
 def startup():
     init_db()
     os.makedirs(UPLOAD_FOLDER, exist_ok=True)
-    os.makedirs(os.getenv("MOCK_EMAIL_FOLDER", "mock_emails"), exist_ok=True)
-    os.makedirs(os.getenv("EXPORT_FOLDER", "exports"), exist_ok=True)
+    os.makedirs(MOCK_EMAIL_FOLDER, exist_ok=True)
+    os.makedirs(EXPORT_FOLDER, exist_ok=True)
     print("✅ HireCheck FastAPI server started")
 
 # ──────────────────────────────────────────────────────────

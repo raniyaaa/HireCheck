@@ -18,7 +18,11 @@ from llm.groq_client import get_groq_response
 
 load_dotenv()
 
-MOCK_FOLDER = os.getenv("MOCK_EMAIL_FOLDER", "mock_emails")
+if os.getenv("VERCEL"):
+    MOCK_FOLDER = "/tmp/mock_emails"
+else:
+    MOCK_FOLDER = os.getenv("MOCK_EMAIL_FOLDER", "mock_emails")
+
 os.makedirs(MOCK_FOLDER, exist_ok=True)
 
 

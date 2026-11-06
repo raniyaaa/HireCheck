@@ -22,13 +22,17 @@ from dotenv import load_dotenv
 from app.state   import state_to_dict
 from app.graph   import get_graph
 from database.db import save_candidate
-
 load_dotenv()
 
-UPLOAD_FOLDER     = os.getenv("UPLOAD_FOLDER", "uploads/resumes")
-SUPPORTED_FORMATS = {".pdf",".jpg",".jpeg",".png",".bmp",".tiff",".tif",".webp"}
+if os.getenv("VERCEL"):
+    UPLOAD_FOLDER = "/tmp/uploads/resumes"
+else:
+    UPLOAD_FOLDER = os.getenv("UPLOAD_FOLDER", "uploads/resumes")
+
+SUPPORTED_FORMATS = {".pdf", ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif", ".webp"}
 
 os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
 
 
 def is_supported(filename: str) -> bool:
