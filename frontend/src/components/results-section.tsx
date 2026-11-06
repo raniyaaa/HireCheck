@@ -62,9 +62,9 @@ export function ResultsSection({ results }: { results: Candidate[] }) {
 
       {/* Summary metrics */}
       <div className="grid grid-cols-2 gap-4 lg:grid-cols-4">
-        <MetricBox value={counts.total} label="📋 Total" />
+        <MetricBox value={counts.total} label=" Total" />
         <MetricBox value={counts.accepted} label="✅ Accepted" color="#16a34a" />
-        <MetricBox value={counts.review} label="🔍 Under Review" color="#a16207" />
+        <MetricBox value={counts.review} label=" Under Review" color="#a16207" />
         <MetricBox value={counts.rejected} label="❌ Rejected" color="#dc2626" />
       </div>
 
@@ -72,7 +72,7 @@ export function ResultsSection({ results }: { results: Candidate[] }) {
 
       {/* Search + filter */}
       <Subheader>
-        <span id="results-heading">📊 Candidate Results</span>
+        <span id="results-heading"> Candidate Results</span>
       </Subheader>
       <div className="mt-4 grid gap-4 sm:grid-cols-[2fr_1fr]">
         <div className="space-y-2">
@@ -223,10 +223,10 @@ function CandidateDetails({
   return (
     <Tabs defaultValue="overview">
       <TabsList variant="line" className="max-w-full justify-start overflow-x-auto">
-        <TabsTrigger value="overview">📋 Overview</TabsTrigger>
+        <TabsTrigger value="overview"> Overview</TabsTrigger>
         <TabsTrigger value="jd">JD Analysis</TabsTrigger>
         <TabsTrigger value="profile">Profile Analysis</TabsTrigger>
-        <TabsTrigger value="email">📧 Email</TabsTrigger>
+        <TabsTrigger value="email"> Email</TabsTrigger>
       </TabsList>
 
       {/* Overview */}
@@ -273,9 +273,9 @@ function CandidateDetails({
             <BulletList items={c.jd_missing_skills ?? []} />
           </div>
           <div>
-            <FieldHeading>⚠️ Weaknesses vs JD</FieldHeading>
+            <FieldHeading> Weaknesses vs JD</FieldHeading>
             <BulletList items={c.jd_weaknesses ?? []} />
-            <FieldHeading>📌 Match Reasons</FieldHeading>
+            <FieldHeading> Match Reasons</FieldHeading>
             <BulletList items={c.jd_reasons ?? []} />
           </div>
         </div>
@@ -289,23 +289,23 @@ function CandidateDetails({
         <Progress value={percent(profile, 10)} className="mt-2" aria-label="Profile match score" />
         <div className="mt-2 grid gap-x-6 md:grid-cols-2">
           <div>
-            <FieldHeading>✅ Strengths vs Profile</FieldHeading>
+            <FieldHeading> Strengths vs Profile</FieldHeading>
             <BulletList items={c.reference_strengths ?? []} />
-            <FieldHeading>📌 Match Reasons</FieldHeading>
+            <FieldHeading> Match Reasons</FieldHeading>
             <BulletList items={c.reference_reasons ?? []} />
           </div>
           <div>
-            <FieldHeading>⚠️ Weaknesses vs Profile</FieldHeading>
+            <FieldHeading> Weaknesses vs Profile</FieldHeading>
             <BulletList items={c.reference_weaknesses ?? []} />
           </div>
         </div>
-        <FieldHeading>📖 Profile Match Explanation</FieldHeading>
+        <FieldHeading> Profile Match Explanation</FieldHeading>
         <p className="text-sm whitespace-pre-line">{c.reference_explanation ?? ""}</p>
       </TabsContent>
 
       {/* Email */}
       <TabsContent value="email" className="mt-4">
-        <FieldHeading>📧 Generated Email</FieldHeading>
+        <FieldHeading> Generated Email</FieldHeading>
         <Callout variant="info">Status: {c.email_status || "Not Sent"}</Callout>
         {c.email_content ? (
           <div className="mt-4 space-y-2">

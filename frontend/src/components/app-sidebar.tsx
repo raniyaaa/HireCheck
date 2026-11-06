@@ -107,12 +107,12 @@ function SidebarContent({
       ) : backendOnline ? (
         <Callout variant="success">✅ Backend connected</Callout>
       ) : (
-        <Callout variant="error">❌ Backend offline</Callout>
+        <Callout variant="error"> Backend offline</Callout>
       )}
 
       <Divider />
 
-      <h3 className="text-lg font-semibold">📋 Job Description</h3>
+      <h3 className="text-lg font-semibold"> Job Description</h3>
       <Label htmlFor="jd" className="mt-3 mb-2 block font-normal">
         Paste the full Job Description
       </Label>
@@ -125,7 +125,7 @@ function SidebarContent({
 
       <Divider />
 
-      <h3 className="text-lg font-semibold">🎯 Ideal Candidate Profile</h3>
+      <h3 className="text-lg font-semibold"> Ideal Candidate Profile</h3>
       <Label htmlFor="ideal" className="mt-3 mb-2 block font-normal">
         Describe your ideal candidate
       </Label>
@@ -138,7 +138,7 @@ function SidebarContent({
 
       <Divider />
 
-      <h3 className="text-lg font-semibold">⚙️ Decision Thresholds</h3>
+      <h3 className="text-lg font-semibold"> Decision Thresholds</h3>
       <ThresholdSlider
         id="accept-threshold"
         label="Accept if score above"

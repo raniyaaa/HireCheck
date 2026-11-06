@@ -154,9 +154,9 @@ export function AdminPanel({ user, refreshKey }: { user: AuthUser; refreshKey: n
 
       <Tabs defaultValue="overview" className="mt-4">
         <TabsList variant="line" className="max-w-full justify-start overflow-x-auto">
-          <TabsTrigger value="overview">📊 System Overview</TabsTrigger>
+          <TabsTrigger value="overview"> System Overview</TabsTrigger>
           <TabsTrigger value="sessions">All Sessions</TabsTrigger>
-          <TabsTrigger value="users">👥 Manage Users</TabsTrigger>
+          <TabsTrigger value="users"> Manage Users</TabsTrigger>
         </TabsList>
 
         {/* System overview */}
@@ -175,7 +175,7 @@ export function AdminPanel({ user, refreshKey }: { user: AuthUser; refreshKey: n
                 {Object.keys(data.decision_breakdown ?? {}).length > 0 ? (
                   <div className="mt-3 grid gap-4 sm:grid-cols-3">
                     <Metric label="✅ Accept" value={data.decision_breakdown.Accept ?? 0} />
-                    <Metric label="🔍 Human Review" value={data.decision_breakdown["Human Review"] ?? 0} />
+                    <Metric label=" Human Review" value={data.decision_breakdown["Human Review"] ?? 0} />
                     <Metric label="❌ Reject" value={data.decision_breakdown.Reject ?? 0} />
                   </div>
                 ) : (
@@ -278,7 +278,7 @@ export function AdminPanel({ user, refreshKey }: { user: AuthUser; refreshKey: n
                               <strong>{u.username}</strong>
                               {isSelf && <em className="text-muted-foreground"> (you)</em>}
                             </span>
-                            <span>{u.role === "admin" ? "🛠️ Admin" : "👤 Recruiter"}</span>
+                            <span>{u.role === "admin" ? " Admin" : " Recruiter"}</span>
                             <span>{u.is_active ? "🟢 Active" : "🔴 Disabled"}</span>
                             <Caption className="text-sm">
                               <span className="md:hidden">Joined </span>
@@ -295,7 +295,7 @@ export function AdminPanel({ user, refreshKey }: { user: AuthUser; refreshKey: n
                                   onClick={() => void handleToggleUser(u)}
                                 >
                                   {pendingUser === u.username && <Loader2Icon className="animate-spin" aria-hidden />}
-                                  {u.is_active ? "🚫 Disable" : "✅ Enable"}
+                                  {u.is_active ? " Disable" : " Enable"}
                                 </Button>
                               )}
                             </span>
