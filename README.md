@@ -54,7 +54,7 @@ HireCheck/
 ## ⚙️ Setup Instructions
 
 ### Step 1 — Clone / Open Project
-Open the `HireCheck/` folder in VS Code.
+Clone the repository and open the `HireCheck/` folder in VS Code.
 
 ### Step 2 — Install Dependencies
 ```bash
@@ -62,82 +62,115 @@ pip install -r requirements.txt
 ```
 
 ### Step 3 — Install Tesseract OCR (for image resumes)
-- **Windows:** Download from https://github.com/UB-Mannheim/tesseract/wiki
+- **Windows:** Download from [UB Mannheim Tesseract](https://github.com/UB-Mannheim/tesseract/wiki)
 - **Mac:** `brew install tesseract`
 - **Linux:** `sudo apt install tesseract-ocr`
 
-### Step 4 — Set Your Groq API Key
-Open `.env` and replace `your_groq_api_key_here`:
-```
+### Step 4 — Configure Environment Variables
+Create a `.env` file in the project root and add your configuration:
+
+```env
 GROQ_API_KEY=gsk_your_actual_key_here
 ```
-Get your free key from: https://console.groq.com
 
-Open your browser at: **https://hirecheckfrontend.onrender.com**
+Get your free API key from [Groq Console](https://console.groq.com).
 
-### Step 5 — Next.js Frontend
-The new UI lives in `frontend/` and talks to the same FastAPI backend.
-See [frontend/README.md](frontend/README.md) for local development and Vercel deployment.
+For local development, configure the required database environment variables as well.
+
+### Step 5 — Run the Application Locally
+
+Start the FastAPI backend and Next.js frontend separately.
+
+**Backend:**
+```bash
+uvicorn backend.main:app --reload
+```
+
+**Frontend:**
+```bash
+cd frontend
+npm install
+npm run dev
+```
+
+Open your browser at `http://localhost:3000`.
+
+### 🌐 Live Application
+Access HireCheck here: [https://hirecheck-kappa.vercel.app](https://hirecheck-kappa.vercel.app)
+
+The application is deployed on Vercel, with a FastAPI backend and TiDB Cloud database.
 
 ---
 
-##  How It Works
+## How It Works
 
-```
+```text
 Recruiter uploads resumes + pastes JD + pastes Ideal Profile
-                        ↓
+                         ↓
               Batch Processor loops through each resume
-                        ↓
-             Parser Agent — extracts text from PDF/image
-                        ↓
-         JD Matcher Agent — scores resume vs Job Description (0-10)
-                        ↓
-   Reference Matcher Agent — scores resume vs Ideal Profile (0-10)
-                        ↓
-         Summarizer Agent — generates recruiter summary
-                        ↓
-     Decision Engine — Final Score = JD Score + Ref Score
-                        ↓
-       > 18 = Accept | 15-18 = Review | < 15 = Reject
-                        ↓
-     Comms Agent — generates appropriate email (saved to mock_emails/)
-                        ↓
-          Saved to SQLite database + displayed in UI
+                         ↓
+              Parser Agent — extracts text from PDF/image
+                         ↓
+              JD Matcher Agent — scores resume vs Job Description (0-10)
+                         ↓
+              Reference Matcher Agent — scores resume vs Ideal Profile (0-10)
+                         ↓
+              Summarizer Agent — generates recruiter summary
+                         ↓
+              Decision Engine — Final Score = JD Score + Ref Score
+                         ↓
+              > 18 = Accept | 15-18 = Review | < 15 = Reject
+                         ↓
+              Comms Agent — generates appropriate email
+                         ↓
+              Candidate results saved to TiDB Cloud database
+                         ↓
+              Results displayed in the Next.js dashboard
 ```
 
 ---
 
-##  Configuration
+## Configuration
 
-Edit `.env` to change:
-```
-ACCEPT_THRESHOLD=18     # Score above this = Accept
-REVIEW_THRESHOLD=15     # Score above this = Review
+Configure the following variables in `.env`:
+
+```env
+ACCEPT_THRESHOLD=18
+REVIEW_THRESHOLD=15
 GROQ_MODEL=llama-3.1-8b-instant
 ```
 
-You can also adjust thresholds live using the sliders in the sidebar.
+You can also adjust the decision thresholds live using the sliders in the sidebar.
 
 ---
 
-##  Mock Emails
+## Mock Emails
 
-All emails are saved as `.txt` files in `mock_emails/`.
-Each file is named: `CandidateName_Decision_Timestamp.txt`
+Generated emails are saved as `.txt` files in the `mock_emails/` directory during local development.
 
-To switch to real Gmail later, update `agents/comms_agent.py` to use
-Python's `smtplib` with your Gmail credentials.
+Each file is named:
+
+`CandidateName_Decision_Timestamp.txt`
+
+On Vercel, temporary files are stored under `/tmp/mock_emails/` because the serverless filesystem is not persistent.
+
+To switch to real Gmail later, update `agents/comms_agent.py` to integrate Python's `smtplib` with your Gmail credentials.
 
 ---
 
-##  Tech Stack
+## Tech Stack
 
-| Layer       | Technology                        |
-|-------------|-----------------------------------|
-| UI          | Next.js + shadcn/ui (Streamlit legacy) |
-| AI/LLM      | Groq (llama-3.1-8b-instant)       |
-| PDF Parsing | pdfplumber, PyMuPDF                |
-| OCR         | pytesseract + Tesseract            |
-| Database    | SQLite (via SQLAlchemy)            |
-| Data Export | pandas                             |
-| Config      | python-dotenv                      |
+| Layer | Technology |
+|---|---|
+| Frontend | Next.js, React, TypeScript, shadcn/ui |
+| Backend | Python, FastAPI |
+| AI/LLM | Groq API, openai/gpt-oss-20b |
+| Multi-Agent Orchestration | LangGraph |
+| PDF Parsing | pdfplumber, PyMuPDF |
+| OCR | pytesseract, Tesseract |
+| Database | TiDB Cloud (MySQL-compatible) |
+| Authentication | JWT |
+| Data Export | pandas |
+| Configuration | python-dotenv |
+| Deployment | Vercel |
+
