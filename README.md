@@ -42,7 +42,8 @@ HireCheck/
 ├── uploads/resumes/         # Uploaded resumes go here
 ├── exports/                 # CSV exports go here
 ├── mock_emails/             # Generated emails saved here
-├── streamlit_app.py         # Main Streamlit UI
+├── frontend/                # Next.js UI (replacing Streamlit) — see frontend/README.md
+├── streamlit_app.py         # Legacy Streamlit UI (kept until the Next.js UI is live)
 ├── run.py                   # App launcher
 ├── .env                     # Your secret config
 └── requirements.txt         # Python dependencies
@@ -73,6 +74,10 @@ GROQ_API_KEY=gsk_your_actual_key_here
 Get your free key from: https://console.groq.com
 
 Open your browser at: **https://hirecheckfrontend.onrender.com**
+
+### Step 5 — Next.js Frontend
+The new UI lives in `frontend/` and talks to the same FastAPI backend.
+See [frontend/README.md](frontend/README.md) for local development and Vercel deployment.
 
 ---
 
@@ -129,7 +134,7 @@ Python's `smtplib` with your Gmail credentials.
 
 | Layer       | Technology                        |
 |-------------|-----------------------------------|
-| UI          | Streamlit                         |
+| UI          | Next.js + shadcn/ui (Streamlit legacy) |
 | AI/LLM      | Groq (llama-3.1-8b-instant)       |
 | PDF Parsing | pdfplumber, PyMuPDF                |
 | OCR         | pytesseract + Tesseract            |
