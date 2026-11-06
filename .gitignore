@@ -10,6 +10,7 @@ __pycache__/
 
 # Database
 *.db
+database/cert/
 
 # Uploaded files
 uploads/
@@ -33,3 +34,9 @@ Thumbs.db
 !uploads/resumes/.gitkeep
 !mock_emails/.gitkeep
 !exports/.gitkeep
+
+
+# Database migration and backup files
+exportaiven.py
+testdb.py
+hirecheck_backup.sql

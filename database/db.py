@@ -1,38 +1,36 @@
-# database/db.py
-
-# PURPOSE:
-#   All SQLite database operations for HireCheck.
-#   The file 'hirecheck.db' is created automatically in your
-#   HireCheck/ root folder when the app first starts.
-
 
 import os
 import json
 import pymysql
 import pymysql.cursors
+from pathlib import Path
 from datetime import datetime
 from dotenv import load_dotenv
 
-load_dotenv()
-DB_HOST     = os.getenv("DB_HOST")
-DB_PORT     = int(os.getenv("DB_PORT", 3306))
-DB_USER     = os.getenv("DB_USER")
-DB_PASSWORD = os.getenv("DB_PASSWORD")
-DB_NAME     = os.getenv("DB_NAME")
+# Project root
+BASE_DIR = Path(__file__).resolve().parent.parent
 
-# DB_PATH = os.getenv("DATABASE_URL", "hirecheck.db")
+# Load .env from HireCheck root
+load_dotenv(BASE_DIR / ".env")
+
+DB_HOST = os.getenv("DB_HOST")
+DB_PORT = int(os.getenv("DB_PORT", 4000))
+DB_USER = os.getenv("DB_USER")
+DB_PASSWORD = os.getenv("DB_PASSWORD")
+DB_NAME = os.getenv("DB_NAME")
+
+# TiDB CA certificate
+DB_SSL_CA = os.getenv("DB_SSL_CA")
+
+if DB_SSL_CA:
+    DB_SSL_CA = Path(DB_SSL_CA)
+    if not DB_SSL_CA.is_absolute():
+        DB_SSL_CA = BASE_DIR / DB_SSL_CA
 
 
 def get_connection():
-    """
-    Opens a connection to the MySQL database (hosted on Aiven).
+    """Connect to TiDB Cloud using PyMySQL and TLS."""
 
-    ssl={'ssl': {}} forces an SSL connection, which Aiven requires
-    for security — connecting without SSL will be rejected.
-
-    cursorclass=DictCursor makes rows behave like dictionaries
-    (so row['username'] works, just like sqlite3.Row did).
-    """
     return pymysql.connect(
         host=DB_HOST,
         port=DB_PORT,
@@ -40,8 +38,11 @@ def get_connection():
         password=DB_PASSWORD,
         database=DB_NAME,
         cursorclass=pymysql.cursors.DictCursor,
-        ssl={"ssl": {}},
+        ssl={"ca": str(DB_SSL_CA)},
+        charset="utf8mb4",
+        connect_timeout=15
     )
+
 
 
 def init_db():
