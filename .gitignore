@@ -39,3 +39,6 @@ Thumbs.db
 exportaiven.py
 testdb.py
 hirecheck_backup.sql
+
+render_backend.sh
+render_frontend.sh
