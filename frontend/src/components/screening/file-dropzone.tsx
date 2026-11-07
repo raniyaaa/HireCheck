@@ -1,14 +1,13 @@
 "use client"
 
 import { useRef, useState } from "react"
-import { CloudUploadIcon, FileTextIcon, XIcon } from "lucide-react"
+import { FileTextIcon, UploadIcon, XIcon } from "lucide-react"
 import { toast } from "sonner"
 
 import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 
-// Same list the backend accepts (batch_processor.SUPPORTED_FORMATS) and the
-// Streamlit uploader allowed.
+// Same list the backend accepts (batch_processor.SUPPORTED_FORMATS).
 const ACCEPTED_EXTENSIONS = [".pdf", ".jpg", ".jpeg", ".png", ".bmp", ".tiff", ".tif"]
 
 function isAccepted(name: string): boolean {
@@ -55,18 +54,11 @@ export function FileDropzone({
     if (added.length > 0) onChange([...files, ...added])
   }
 
-  function removeAt(index: number) {
-    onChange(files.filter((_, i) => i !== index))
-  }
-
   return (
-    <div>
-      <p id="dropzone-label" className="mb-2 text-sm">
-        Upload PDF or image resumes (multiple files supported)
-      </p>
+    <div className="space-y-3">
       <div
         role="group"
-        aria-labelledby="dropzone-label"
+        aria-label="Resume files"
         onDragOver={(e) => {
           if (disabled) return
           e.preventDefault()
@@ -81,25 +73,22 @@ export function FileDropzone({
           if (!disabled) addFiles(e.dataTransfer.files)
         }}
         className={cn(
-          "flex flex-col items-start gap-4 rounded-lg border border-dashed border-transparent bg-muted p-4 transition-colors sm:flex-row sm:items-center sm:justify-between",
-          dragging && "border-primary bg-primary/5",
+          "flex flex-col items-center justify-center gap-3 rounded-lg border-2 border-dashed px-4 py-8 text-center transition-colors sm:px-6",
+          dragging ? "border-primary bg-primary/5" : "border-border bg-muted/30",
           disabled && "opacity-60",
         )}
       >
-        <div className="flex items-center gap-3">
-          <CloudUploadIcon className="size-9 shrink-0 text-muted-foreground" aria-hidden />
-          <div>
-            <p className="text-sm">Drag and drop files here</p>
-            <p className="text-xs text-muted-foreground">Supported: PDF, JPG, JPEG, PNG, BMP, TIFF</p>
-          </div>
+        <div className="flex size-10 items-center justify-center rounded-full border bg-background shadow-xs">
+          <UploadIcon className="size-4 text-muted-foreground" aria-hidden />
         </div>
-        <Button
-          type="button"
-          variant="outline"
-          className="bg-background"
-          disabled={disabled}
-          onClick={() => inputRef.current?.click()}
-        >
+        <div className="space-y-1">
+          <p className="text-sm font-medium">
+            <span className="hidden sm:inline">Drag and drop resumes here</span>
+            <span className="sm:hidden">Add resumes from your device</span>
+          </p>
+          <p className="text-xs text-muted-foreground">PDF, JPG, PNG, BMP or TIFF</p>
+        </div>
+        <Button type="button" variant="outline" size="sm" disabled={disabled} onClick={() => inputRef.current?.click()}>
           Browse files
         </Button>
         <input
@@ -118,10 +107,10 @@ export function FileDropzone({
       </div>
 
       {files.length > 0 && (
-        <div className="mt-3">
-          <ul className="grid gap-2 sm:grid-cols-2 xl:grid-cols-4">
+        <div className="space-y-2">
+          <ul className="max-h-64 divide-y overflow-y-auto rounded-lg border bg-background">
             {files.map((f, i) => (
-              <li key={fileKey(f)} className="flex min-w-0 items-center gap-2 rounded-md border px-2.5 py-1.5">
+              <li key={fileKey(f)} className="flex items-center gap-3 px-3 py-2">
                 <FileTextIcon className="size-4 shrink-0 text-muted-foreground" aria-hidden />
                 <div className="min-w-0 flex-1">
                   <p className="truncate text-sm" title={f.name}>
@@ -132,9 +121,9 @@ export function FileDropzone({
                 <Button
                   type="button"
                   variant="ghost"
-                  size="icon-xs"
+                  size="icon-sm"
                   disabled={disabled}
-                  onClick={() => removeAt(i)}
+                  onClick={() => onChange(files.filter((_, j) => j !== i))}
                   aria-label={`Remove ${f.name}`}
                 >
                   <XIcon />
@@ -142,18 +131,23 @@ export function FileDropzone({
               </li>
             ))}
           </ul>
-          {files.length > 1 && (
-            <Button
-              type="button"
-              variant="link"
-              size="sm"
-              className="mt-1 px-0 text-muted-foreground"
-              disabled={disabled}
-              onClick={() => onChange([])}
-            >
-              Clear all
-            </Button>
-          )}
+          <div className="flex items-center justify-between text-xs text-muted-foreground">
+            <span>
+              {files.length} {files.length === 1 ? "file" : "files"} selected
+            </span>
+            {files.length > 1 && (
+              <Button
+                type="button"
+                variant="link"
+                size="xs"
+                className="h-auto px-0 text-muted-foreground"
+                disabled={disabled}
+                onClick={() => onChange([])}
+              >
+                Clear all
+              </Button>
+            )}
+          </div>
         </div>
       )}
     </div>

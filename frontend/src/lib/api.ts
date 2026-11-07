@@ -1,6 +1,7 @@
 // Typed client for the HireCheck FastAPI backend (backend/main.py).
-// Every call goes straight from the browser to FastAPI, so long-running
-
+// In production the backend is served by the same Vercel deployment under /api
+// (see vercel.json); in development it defaults to http://localhost:8000.
+// NEXT_PUBLIC_BACKEND_URL overrides both.
 
 export const BACKEND_URL = (
   process.env.NEXT_PUBLIC_BACKEND_URL ||
